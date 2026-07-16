@@ -1,5 +1,6 @@
 streamlit
 pandas
-python-docx
+openpyxl
 PyMuPDF
+python-docx
 thefuzz
