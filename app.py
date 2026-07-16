@@ -4,11 +4,9 @@ import pandas as pd
 # Tetapan muka surat web
 st.set_page_config(page_title="Sistem Banding Data", layout="wide")
 
-# Tajuk utama
 st.title("Sistem Perbandingan Dokumen 📄🔍")
 st.write("Muat naik dua fail di bawah untuk membandingkan isinya.")
 
-# Buat dua ruangan (kiri dan kanan)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -19,57 +17,64 @@ with col2:
     st.subheader("Fail Kedua (B)")
     file_2 = st.file_uploader("Muat naik Fail B", type=["pdf", "docx", "xlsx", "csv"], key="file2")
 
-# Butang untuk mula membandingkan
-if st.button("Bandingkan Dokumen", type="primary"):
-    if file_1 and file_2:
-        
-        # --- LOGIK UNTUK FAIL EXCEL DAN CSV ---
-        if file_1.name.endswith(('.xlsx', '.csv')) and file_2.name.endswith(('.xlsx', '.csv')):
-            try:
-                # 1. Baca fail menggunakan enjin Pandas
-                if file_1.name.endswith('.csv'):
-                    df1 = pd.read_csv(file_1)
-                else:
-                    df1 = pd.read_excel(file_1)
+# Sistem akan terus berjalan bila kedua-dua fail ada
+if file_1 and file_2:
+    if file_1.name.endswith(('.xlsx', '.csv')) and file_2.name.endswith(('.xlsx', '.csv')):
+        try:
+            # 1. Baca fail
+            df1 = pd.read_csv(file_1) if file_1.name.endswith('.csv') else pd.read_excel(file_1)
+            df2 = pd.read_csv(file_2) if file_2.name.endswith('.csv') else pd.read_excel(file_2)
 
-                if file_2.name.endswith('.csv'):
-                    df2 = pd.read_csv(file_2)
-                else:
-                    df2 = pd.read_excel(file_2)
+            st.success("Kedua-dua fail berjaya dibaca!")
+            st.divider()
+            
+            # 2. Paparan Data Asas
+            st.write("### 📊 Paparan Data Asas")
+            colA, colB = st.columns(2)
+            with colA:
+                st.dataframe(df1, height=200)
+            with colB:
+                st.dataframe(df2, height=200)
 
-                st.success("Kedua-dua fail berjaya dibaca oleh sistem!")
-                st.divider() # Buat garisan pemisah
+            st.divider()
 
-                # 2. Paparkan data yang dibaca (Preview)
-                st.write("### 📊 Paparan Data Asas")
-                colA, colB = st.columns(2)
-                with colA:
-                    st.write(f"**Data Fail A** (Jumlah: {len(df1)} baris)")
-                    st.dataframe(df1) # Tunjuk jadual A
-                with colB:
-                    st.write(f"**Data Fail B** (Jumlah: {len(df2)} baris)")
-                    st.dataframe(df2) # Tunjuk jadual B
+            # 3. Tetapan Perbandingan (Pilih Lajur Secara Manual)
+            st.write("### ⚙️ Tetapan Perbandingan")
+            st.info("Pilih lajur dari setiap fail yang anda ingin bandingkan.")
+            
+            col_pilih_A, col_pilih_B = st.columns(2)
+            with col_pilih_A:
+                # Paparkan senarai lajur Fail A untuk dipilih
+                pilihan_A = st.selectbox("Pilih lajur untuk Fail A:", df1.columns)
+            with col_pilih_B:
+                # Paparkan senarai lajur Fail B untuk dipilih
+                pilihan_B = st.selectbox("Pilih lajur untuk Fail B:", df2.columns)
 
-                st.divider()
+            st.divider()
 
-                # 3. Mula Membandingkan Data (Langkah Asas)
-                st.write("### 🔍 Hasil Perbandingan")
+            # 4. Logik Banding Data
+            st.write("### 🎯 Hasil Perbandingan")
+            
+            # Tukar semua data dalam lajur yang dipilih kepada teks (string) supaya mudah dibanding
+            # Buang data yang kosong (NaN)
+            data_A = df1[pilihan_A].astype(str).dropna().tolist()
+            data_B = df2[pilihan_B].astype(str).dropna().tolist()
+            
+            # Cari persamaan menggunakan fungsi 'set'
+            persamaan = set(data_A).intersection(set(data_B))
+            
+            if persamaan:
+                st.success(f"Terdapat {len(persamaan)} rekod yang SAMA ditemui antara kedua-dua lajur tersebut!")
+                st.write("Senarai rekod yang wujud dalam kedua-dua fail:")
                 
-                # Sistem semak adakah kedua-dua fail ada nama lajur (header) yang sama
-                lajur_sama = list(set(df1.columns).intersection(set(df2.columns)))
-                
-                if lajur_sama:
-                    st.info(f"Sistem mengesan lajur yang sama dalam kedua-dua fail iaitu: **{', '.join(lajur_sama)}**")
-                    st.write("💡 *Nota: Memandangkan ada lajur yang sama, sistem boleh melakukan carian rekod yang bertindih (duplicate) nanti.*")
-                else:
-                    st.warning("Tiada nama lajur (header) yang sama dikesan. Sukar untuk sistem membandingkan data jika format jadual berbeza.")
+                # Tunjuk hasil dalam bentuk jadual
+                df_hasil = pd.DataFrame(list(persamaan), columns=["Data Sama"])
+                st.dataframe(df_hasil)
+            else:
+                st.warning("Tiada sebarang persamaan data ditemui antara dua lajur tersebut.")
 
-            except Exception as e:
-                st.error(f"Alamak, ada masalah semasa membaca fail: {e}")
-        
-        # --- LOGIK UNTUK WORD / PDF (Akan datang) ---
-        else:
-            st.info("Sistem bacaan untuk Word dan PDF akan ditambah di bahagian ini nanti!")
+        except Exception as e:
+            st.error(f"Ralat semasa memproses fail: {e}")
             
     else:
-        st.warning("Sila muat naik kedua-dua fail terlebih dahulu.")
+        st.info("Sistem bacaan untuk Word dan PDF belum diaktifkan lagi.")
